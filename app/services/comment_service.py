@@ -4,14 +4,9 @@
 
   Date          : 7/11/2026 11:58 PM
   Author        : rahir
-  Description:
-    ----------
-
+  Description: Complete functional comment and nested replies service.
 ====================================================================================
-Last Update    :
-Last Modifier  :
 """
-
 from abc import ABC, abstractmethod
 from typing import Optional, List
 from uuid import UUID
@@ -28,11 +23,10 @@ from app.utils.response import success_response
 
 class ICommentService(ABC):
     @abstractmethod
-    async def add_comment(self, db: AsyncSession, author_id: UUID, post_id: UUID, text_content: str,
-                          parent_comment_id: Optional[UUID]) -> JSONResponse: pass
+    async def add_comment(self, db: AsyncSession, author_id: UUID, post_id: UUID, text_content: str, parent_comment_id: Optional[UUID]) -> JSONResponse: pass
 
     @abstractmethod
-    async def get_comments(self, db: AsyncSession, post_id: UUID) -> JSONResponse: pass
+    async def get_comments(self, db: AsyncSession, post_id: UUID, current_user_id: UUID) -> JSONResponse: pass
 
     @abstractmethod
     async def toggle_like(self, db: AsyncSession, user_id: UUID, comment_id: UUID) -> JSONResponse: pass
@@ -50,24 +44,27 @@ class CommentService(ICommentService):
         if comment is None:
             return None
 
+        # Base fallbacks for likes and counts tracking
         if not hasattr(comment, "likes_count") or comment.likes_count is None:
             comment.likes_count = 0
         if not hasattr(comment, "is_liked_by_me") or comment.is_liked_by_me is None:
             comment.is_liked_by_me = False
 
-        # FIX: Check object's __dict__ to see if 'replies' is loaded.
-        # This completely avoids both AttributeError and MissingGreenlet errors.
-        if "replies" in comment.__dict__:
-            if comment.replies:
-                for reply in comment.replies:
-                    self._prepare_comment(reply)
+        # Fallback dummy images matching requested user specs if empty
+        if comment.user:
+            if not hasattr(comment.user, "profile_image_url") or not comment.user.profile_image_url:
+                setattr(comment.user, "profile_image_url", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80")
+
+        # Recursively map into replies to calculate counters and dummy image structures
+        if hasattr(comment, "replies") and comment.replies:
+            for reply in comment.replies:
+                self._prepare_comment(reply)
         else:
             comment.replies = []
 
         return comment
 
-    async def add_comment(self, db: AsyncSession, author_id: UUID, post_id: UUID, text_content: str,
-                          parent_comment_id: Optional[UUID]) -> JSONResponse:
+    async def add_comment(self, db: AsyncSession, author_id: UUID, post_id: UUID, text_content: str, parent_comment_id: Optional[UUID]) -> JSONResponse:
         clean_text = text_content.strip()
         if not clean_text:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Comment content cannot be empty.")
@@ -78,8 +75,7 @@ class CommentService(ICommentService):
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Parent comment not found.")
 
         try:
-            inserted_comment = await self.comment_repo.create_comment(db, author_id, post_id, clean_text,
-                                                                      parent_comment_id)
+            inserted_comment = await self.comment_repo.create_comment(db, author_id, post_id, clean_text, parent_comment_id)
             await db.commit()
         except IntegrityError:
             await db.rollback()
@@ -88,15 +84,15 @@ class CommentService(ICommentService):
                 detail="Target post or user context does not exist in the system."
             )
 
-        # Pull the fully hydrated comment object back out (eagerly loading relations)
-        comment = await self.comment_repo.get_by_id_with_author(db, inserted_comment.id)
+        comment = await self.comment_repo.get_by_id_with_relations(db, inserted_comment.id, current_user_id=author_id)
         self._prepare_comment(comment)
 
         serialized = CommentResponse.model_validate(comment).model_dump(mode="json")
         return success_response(data=serialized, status_code=status.HTTP_201_CREATED)
 
-    async def get_comments(self, db: AsyncSession, post_id: UUID) -> JSONResponse:
-        comments = await self.comment_repo.get_comments_by_post(db, post_id)
+    async def get_comments(self, db: AsyncSession, post_id: UUID, current_user_id: UUID) -> JSONResponse:
+        # Fetch fully calculated hierarchical comment list tree mapping
+        comments = await self.comment_repo.get_comments_by_post(db, post_id, current_user_id)
 
         for comment in comments:
             self._prepare_comment(comment)
@@ -121,6 +117,10 @@ class CommentService(ICommentService):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found.")
 
         likers = await self.comment_repo.get_comment_likers(db, comment_id)
-        serialized_likers = [UserMinResponse.model_validate(u).model_dump(mode="json") for u in likers]
+        serialized_likers = []
+        for u in likers:
+            if not getattr(u, "profile_image_url", None):
+                setattr(u, "profile_image_url", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80")
+            serialized_likers.append(UserMinResponse.model_validate(u).model_dump(mode="json"))
 
         return success_response(data={"liked_by": serialized_likers}, status_code=status.HTTP_200_OK)

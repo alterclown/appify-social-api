@@ -4,16 +4,11 @@
 
   Date          : 7/11/2026 11:57 PM
   Author        : rahir
-  Description:
-    ----------
-
+  Description: Refactored comment schemas supporting nested replies and fallback structures.
 ====================================================================================
-Last Update    :
-Last Modifier  :
 """
 
-
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from uuid import UUID
 from datetime import datetime
 from typing import Optional, List
@@ -38,6 +33,21 @@ class CommentResponse(BaseModel):
     replies: List["CommentResponse"] = []  # Self-referential list for deep threads
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("user", mode="before")
+    @classmethod
+    def ensure_user_profile_image(cls, v: any) -> any:
+        """Enforces a default fallback profile avatar on the raw input before parsing schema structures."""
+        if v is not None:
+            # Handle if input is a database object model
+            if hasattr(v, "profile_image_url"):
+                if not getattr(v, "profile_image_url", None):
+                    v.profile_image_url = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+            # Handle if input is a dictionary representation
+            elif isinstance(v, dict):
+                if not v.get("profile_image_url"):
+                    v["profile_image_url"] = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+        return v
 
 # Required by Pydantic v2 to securely compile recursive models
 CommentResponse.model_rebuild()
