@@ -16,9 +16,9 @@ services:
 
   backend:
     build:
-      context: ./appify-social-api
+      context: .
     env_file:
-      - ./appify-social-api/.env
+      - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:password@database:5432/appify-social-db
     ports:
@@ -30,7 +30,7 @@ services:
 
   frontend:
     build:
-      context: ./appify-social-ui
+      context: ../appify-ui
     environment:
       VITE_API_PROXY_TARGET: http://backend:8000
     ports:
