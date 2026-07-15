@@ -34,4 +34,4 @@ echo "Running schema file: social_feed.sql..."
 psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -f /app/social_feed.sql
 
 echo "Database initialized successfully. Launching API..."
-exec poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec poetry run uvicorn main:app --host 0.0.0.0 --port 8000

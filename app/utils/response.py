@@ -18,9 +18,7 @@ from typing import Any, Optional
 from fastapi.responses import JSONResponse
 
 def success_response(data: Any = None, status_code: int = 200) -> JSONResponse:
-    """
-    Standardized success response wrapper.
-    """
+
     return JSONResponse(
         status_code=status_code,
         content={
@@ -31,9 +29,6 @@ def success_response(data: Any = None, status_code: int = 200) -> JSONResponse:
     )
 
 def error_response(message: str, error_code: str, status_code: int = 400, details: Any = None) -> JSONResponse:
-    """
-    Standardized error response wrapper with custom error codes.
-    """
     return JSONResponse(
         status_code=status_code,
         content={

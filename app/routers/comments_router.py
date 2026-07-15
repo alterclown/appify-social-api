@@ -11,20 +11,6 @@
 Last Update    :
 Last Modifier  :
 """
-
-"""
-====================================================================================
-  appify_social_api
-
-  Date          : 7/12/2026 12:04 AM
-  Author        : rahir
-  Description:
-    ----------
-
-====================================================================================
-Last Update    :
-Last Modifier  :
-"""
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -37,7 +23,7 @@ from app.models.user import User
 
 router = APIRouter(tags=["Comments & Replies"])
 
-# Factory function to safely provide the service without FastAPI parsing its __init__
+
 def get_comment_service() -> ICommentService:
     return CommentService()
 
@@ -64,7 +50,7 @@ async def get_comments_for_post(
     current_user: User = Depends(get_current_user),
     service: ICommentService = Depends(get_comment_service)
 ):
-    # Fixed: Added the missing current_user_id argument required by CommentService.get_comments()
+
     return await service.get_comments(db=db, post_id=post_id, current_user_id=current_user.id)
 
 @router.post("/api/comments/{comment_id}/like", status_code=status.HTTP_200_OK)

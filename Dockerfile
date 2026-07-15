@@ -16,8 +16,16 @@ RUN pip install poetry
 # Copy dependency configuration files
 COPY pyproject.toml poetry.lock* /app/
 
-# Configure poetry to not create virtual environments inside the container
-RUN poetry config virtualenvs.create false && poetry install --no-root --no-interaction --no-ansi
+# Configure Poetry for containers and retry transient package-download failures.
+RUN poetry config virtualenvs.create false && \
+    poetry config requests.max-retries 5 && \
+    attempts=0; \
+    until poetry install --no-root --no-interaction --no-ansi; do \
+        attempts=$((attempts + 1)); \
+        if [ "$attempts" -ge 3 ]; then exit 1; fi; \
+        echo "Dependency installation failed; retrying ($attempts/3)..."; \
+        sleep 5; \
+    done
 
 # Copy the rest of the application files
 COPY . /app/

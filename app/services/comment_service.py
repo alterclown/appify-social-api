@@ -44,18 +44,15 @@ class CommentService(ICommentService):
         if comment is None:
             return None
 
-        # Base fallbacks for likes and counts tracking
         if not hasattr(comment, "likes_count") or comment.likes_count is None:
             comment.likes_count = 0
         if not hasattr(comment, "is_liked_by_me") or comment.is_liked_by_me is None:
             comment.is_liked_by_me = False
 
-        # Fallback dummy images matching requested user specs if empty
         if comment.user:
             if not hasattr(comment.user, "profile_image_url") or not comment.user.profile_image_url:
                 setattr(comment.user, "profile_image_url", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80")
 
-        # Recursively map into replies to calculate counters and dummy image structures
         if hasattr(comment, "replies") and comment.replies:
             for reply in comment.replies:
                 self._prepare_comment(reply)
@@ -91,7 +88,6 @@ class CommentService(ICommentService):
         return success_response(data=serialized, status_code=status.HTTP_201_CREATED)
 
     async def get_comments(self, db: AsyncSession, post_id: UUID, current_user_id: UUID) -> JSONResponse:
-        # Fetch fully calculated hierarchical comment list tree mapping
         comments = await self.comment_repo.get_comments_by_post(db, post_id, current_user_id)
 
         for comment in comments:

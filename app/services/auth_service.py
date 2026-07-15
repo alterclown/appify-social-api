@@ -26,42 +26,32 @@ from app.schema.auth import UserResponse, TokenResponse
 from app.utils.response import success_response
 
 
-# ==============================================================================
-# 🔑 INTERFACE
-# ==============================================================================
+
 class IAuthService(ABC):
     @abstractmethod
     async def register(self, db: AsyncSession, first_name: str, last_name: str, email: str, password: str) -> JSONResponse:
-        """Register user, commit to database, serialize, and return standardized JSONResponse."""
         pass
 
     @abstractmethod
     async def login(self, db: AsyncSession, email: str, password: str) -> JSONResponse:
-        """Authenticate credentials, issue JWT, and return standardized JSONResponse."""
         pass
 
     @abstractmethod
     def get_me_profile(self, current_user: User) -> JSONResponse:
-        """Serialize active profile and return standardized JSONResponse."""
         pass
 
     @abstractmethod
     async def authenticate_token(self, db: AsyncSession, token: str) -> User:
-        """Decode a JWT token and verify the corresponding user exists in the database."""
         pass
 
 
-# ==============================================================================
-# 🚀 IMPLEMENTATION
-# ==============================================================================
+
 class AuthService(IAuthService):
 
     def __init__(self, user_repo: IUserRepository = None):
-        # Now every method safely pulls from this single encapsulated instance
         self.user_repo = user_repo or UserRepository()
 
     async def register(self, db: AsyncSession, first_name: str, last_name: str, email: str, password: str) -> JSONResponse:
-        # Changed from user_repo to self.user_repo
         existing_user = await self.user_repo.get_by_email(db, email)
         if existing_user:
             raise HTTPException(
@@ -70,7 +60,6 @@ class AuthService(IAuthService):
             )
 
         hashed_pwd = hash_password(password)
-        # Changed from user_repo to self.user_repo
         new_user = await self.user_repo.create_user(db, first_name, last_name, email, hashed_pwd)
 
         await db.commit()
@@ -80,7 +69,6 @@ class AuthService(IAuthService):
         return success_response(data=serialized_user, status_code=status.HTTP_201_CREATED)
 
     async def login(self, db: AsyncSession, email: str, password: str) -> JSONResponse:
-        # Changed from user_repo to self.user_repo
         user = await self.user_repo.get_by_email(db, email)
         if not user:
             raise HTTPException(

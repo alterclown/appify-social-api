@@ -1,16 +1,17 @@
 """
 ====================================================================================
-  NexusACS - Nexus Auth Function
-  Copyright (c) 2025 Nybsys Inc. All rights reserved.
- 
-  Date          : 7/11/2026 11:50 PM
+  appify_social_api
+
+  Date          : 7/11/2026 11:55 PM
   Author        : rahir
   Description:
     ----------
+
 ====================================================================================
-Last Update    :  
-Last Modifier  : 
+Last Update    :
+Last Modifier  :
 """
+
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from uuid import UUID
@@ -54,28 +55,27 @@ class FeedRepository(IFeedRepository):
         return new_post
 
     async def get_timeline(self, db: AsyncSession, current_user_id: UUID, limit: int, offset: int) -> List[Post]:
-        # 1. Total likes count subquery per post
+
         likes_subquery = (
             select(PostLike.post_id, func.count(PostLike.user_id).label("likes_count"))
             .group_by(PostLike.post_id)
             .subquery()
         )
 
-        # 2. Total root comments count subquery per post
+
         comments_subquery = (
             select(Comment.post_id, func.count(Comment.id).label("comments_count"))
             .group_by(Comment.post_id)
             .subquery()
         )
 
-        # 3. Dynamic evaluation checking if the logged-in user liked the post
+
         user_like_subquery = (
             select(PostLike.post_id, literal(True).label("is_liked"))
             .where(PostLike.user_id == current_user_id)
             .subquery()
         )
 
-        # Main query binding the aggregations via outer joins
         query = (
             select(
                 Post,
@@ -103,7 +103,6 @@ class FeedRepository(IFeedRepository):
         posts = []
         for row in result.unique().all():
             post_obj = row[0]
-            # Bind aggregated properties directly onto the ORM model instances dynamically
             post_obj.likes_count = row.likes_count
             post_obj.comments_count = row.comments_count
             post_obj.is_liked_by_me = row.is_liked_by_me

@@ -50,7 +50,6 @@ class FeedService(IFeedService):
         await db.commit()
         await db.refresh(post)
 
-        # Fresh posts initialization configuration
         post.likes_count = 0
         post.comments_count = 0
         post.is_liked_by_me = False
@@ -62,7 +61,6 @@ class FeedService(IFeedService):
         safe_size = min(size, 50)
         offset = (max(page, 1) - 1) * safe_size
 
-        # Fetch fully hydrated post data records processed accurately from database layers
         posts = await self.feed_repo.get_timeline(db, current_user_id, limit=safe_size, offset=offset)
 
         serialized = [PostResponse.model_validate(p).model_dump(mode="json") for p in posts]

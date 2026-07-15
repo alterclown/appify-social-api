@@ -25,10 +25,5 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
 ) -> User:
-    """
-    Reusable authentication dependency for protected routes.
-    Delegates validation entirely to the AuthService layer.
-    """
     service = AuthService()
-    # The dependency now passes control straight to the service layer
     return await service.authenticate_token(db, token)

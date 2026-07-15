@@ -17,7 +17,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional, Literal, List
 
-# Reusable minimal user data structure (useful for showing who liked a post)
+
 class UserMinResponse(BaseModel):
     id: UUID
     first_name: str
@@ -25,13 +25,13 @@ class UserMinResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# 1. Incoming payload to create a post
+
 class PostCreateRequest(BaseModel):
     text_content: str = Field(..., min_length=1, examples=["Hello World! This is my first post."])
     image_url: Optional[str] = Field(None, examples=["https://cloudstorage.com/bucket/img.jpg"])
     privacy: Literal["public", "private"] = "public"
 
-# 2. Complete data schema for outputting a single post to the feed
+
 class PostResponse(BaseModel):
     id: UUID
     author: UserMinResponse
@@ -41,10 +41,10 @@ class PostResponse(BaseModel):
     created_at: datetime
     likes_count: int = 0
     comments_count: int = 0
-    is_liked_by_me: bool = False  # Tells the frontend whether to light up the Like button
+    is_liked_by_me: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
-# 3. Response list displaying everyone who liked a specific target
+
 class LikedByResponse(BaseModel):
     liked_by: List[UserMinResponse]

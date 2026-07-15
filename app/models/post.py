@@ -1,16 +1,17 @@
 """
 ====================================================================================
-  NexusACS - Nexus Auth Function
-  Copyright (c) 2025 Nybsys Inc. All rights reserved.
- 
-  Date          : 7/11/2026 1:01 AM
+  appify_social_api
+
+  Date          : 7/11/2026 11:55 PM
   Author        : rahir
   Description:
     ----------
+
 ====================================================================================
-Last Update    :  
-Last Modifier  : 
+Last Update    :
+Last Modifier  :
 """
+
 import uuid
 import enum
 from datetime import datetime

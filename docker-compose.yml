@@ -1,27 +1,43 @@
-version: '3.8'
-
 services:
-  postgres-db:
-    image: postgres:15-alpine
+  database:
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: appify-social-db
-    ports:
-      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d appify-social-db"]
-      interval: 3s
-      timeout: 3s
+      interval: 5s
+      timeout: 5s
       retries: 10
+    restart: unless-stopped
 
   backend:
-    build: .
-    network_mode: "host"
+    build:
+      context: ./appify-social-api
     env_file:
-      - .env
-    volumes:
-      - .:/app
+      - ./appify-social-api/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:password@database:5432/appify-social-db
+    ports:
+      - "8000:8000"
     depends_on:
-      postgres-db:
-        condition: service_started
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./appify-social-ui
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
